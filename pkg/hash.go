@@ -20,7 +20,13 @@ type HashConfig struct {
 }
 
 func NewHashConfig() *HashConfig {
-	return &HashConfig{}
+	return &HashConfig{
+		Memory:  64 * 1024,
+		Time:    3,
+		Thread:  2,
+		KeyLen:  32,
+		SaltLen: 16,
+	}
 }
 
 func (h *HashConfig) SetConfig(memory, time, keylen, saltlen uint32, thread uint8) {
