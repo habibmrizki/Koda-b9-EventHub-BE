@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"strings"
 
 	"github.com/habibmrizki/BE-EventHub/internal/dto"
@@ -48,5 +49,43 @@ func (s *AuthService) Register(ctx context.Context, body dto.RegisterRequest) (d
 		Location:  user.Location,
 		AvatarURL: user.AvatarURL,
 		Bio:       user.Bio,
+	}, nil
+}
+
+func (s *AuthService) Login(ctx context.Context, body dto.LoginRequest) (dto.AuthData, error) {
+	email := strings.TrimSpace(body.Email)
+	password := strings.TrimSpace(body.Password)
+
+	if email == "" || password == "" {
+		return dto.AuthData{}, errors.New("email dan password wajib diisi")
+	}
+
+	user, err := s.repo.FindByEmail(ctx, email)
+	if err != nil {
+		return dto.AuthData{}, errors.New("email atau password salah")
+	}
+
+	isMatch, err := s.hashConfig.CompareHashAndPassword(password, user.Password)
+	if err != nil || !isMatch {
+		return dto.AuthData{}, errors.New("email atau password salah")
+	}
+
+	claims := pkg.NewJWTClaims(user.ID, user.Role)
+	token, err := claims.GenToken()
+	if err != nil {
+		return dto.AuthData{}, err
+	}
+
+	return dto.AuthData{
+		Token: token,
+		User: dto.UserResponse{
+			ID:        user.ID,
+			FullName:  user.FullName,
+			Email:     user.Email,
+			Role:      user.Role,
+			Location:  user.Location,
+			AvatarURL: user.AvatarURL,
+			Bio:       user.Bio,
+		},
 	}, nil
 }
