@@ -49,3 +49,35 @@ func (r *AuthRepository) CreateUser(ctx context.Context, fullName, email, hashed
 
 	return user, nil
 }
+
+func (r *AuthRepository) FindByEmail(ctx context.Context, email string) (models.Users, error) {
+	query := `
+		SELECT id, full_name, email, password, role, location, COALESCE(avatar_url, ''), bio, created_at, updated_at
+		FROM users
+		WHERE LOWER(email) = LOWER($1)
+		LIMIT 1
+	`
+
+	var user models.Users
+	err := r.db.QueryRow(ctx, query, email).Scan(
+		&user.ID,
+		&user.FullName,
+		&user.Email,
+		&user.Password,
+		&user.Role,
+		&user.Location,
+		&user.AvatarURL,
+		&user.Bio,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return models.Users{}, err
+		}
+		return models.Users{}, ErrUserNotFound
+	}
+
+	return user, nil
+}
+
