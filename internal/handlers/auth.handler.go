@@ -74,3 +74,45 @@ func (h *AuthHandler) Register(ctx *gin.Context) {
 		Data:      user,
 	})
 }
+
+// Login godoc
+// @Summary      Login user
+// @Description  Autentikasi pengguna dan mengembalikan JWT Token
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        request  body      dto.LoginRequest  true  "Kredensial Login"
+// @Success      200      {object}  models.ResponseData
+// @Failure      400      {object}  models.ErrorResponse
+// @Failure      401      {object}  models.ErrorResponse
+// @Router       /auth/login [post]
+func (h *AuthHandler) Login(ctx *gin.Context) {
+	var body dto.LoginRequest
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		ctx.JSON(http.StatusBadRequest, models.ErrorResponse{
+			IsSuccess: false,
+			Code:      http.StatusBadRequest,
+			Msg:       "Data login tidak valid",
+			Err:       err.Error(),
+		})
+		return
+	}
+
+	authData, err := h.service.Login(ctx.Request.Context(), body)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, models.ErrorResponse{
+			IsSuccess: false,
+			Code:      http.StatusUnauthorized,
+			Msg:       "Login gagal",
+			Err:       err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, models.ResponseData{
+		IsSuccess: true,
+		Code:      http.StatusOK,
+		Msg:       "Login berhasil",
+		Data:      authData,
+	})
+}
