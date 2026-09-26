@@ -13,5 +13,5 @@ func InitAuthRouter(router *gin.Engine, db *pgxpool.Pool) {
 	authHandler := handlers.NewAuthHandler(authRepository)
 
 	authRouter.POST("/register", authHandler.Register)
-
+	authRouter.POST("/login", authHandler.Login)
 }
