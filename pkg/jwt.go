@@ -17,12 +17,10 @@ type Claims struct {
 
 func NewJWTClaims(userid int, role string) *Claims {
 	return &Claims{
-		UserId: userid,
-		Role:   role,
-		RegisteredClaims: jwtv5.RegisteredClaims{
-			ExpiresAt: jwtv5.NewNumericDate(time.Now().Add(time.Minute * 30)),
-			Issuer:    os.Getenv("JWT_ISSUER"),
-		},
+		UserId:    userid,
+		Role:      role,
+		ExpiresAt: jwtv5.NewNumericDate(time.Now().Add(time.Minute * 30)),
+		Issuer:    os.Getenv("JWT_ISSUER"),
 	}
 }
 
