@@ -4,12 +4,14 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/habibmrizki/BE-EventHub/internal/dto"
 	"github.com/habibmrizki/BE-EventHub/internal/models"
 	"github.com/habibmrizki/BE-EventHub/internal/repositories"
 	"github.com/habibmrizki/BE-EventHub/internal/services"
+	"github.com/habibmrizki/BE-EventHub/pkg"
 )
 
 type AuthHandler struct {
@@ -114,5 +116,132 @@ func (h *AuthHandler) Login(ctx *gin.Context) {
 		Code:      http.StatusOK,
 		Msg:       "Login berhasil",
 		Data:      authData,
+	})
+}
+
+// Logout godoc
+// @Summary      Logout user
+// @Description  Stateless logout
+// @Tags         Auth
+// @Security     JWTtoken
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  models.Response
+// @Failure      401  {object}  models.ErrorResponse
+// @Failure      500  {object}  models.ErrorResponse
+// @Router       /auth/logout [post]
+func (h *AuthHandler) Logout(ctx *gin.Context) {
+	bearerToken := ctx.GetHeader("Authorization")
+	parts := strings.Fields(bearerToken)
+	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
+		ctx.JSON(http.StatusUnauthorized, models.ErrorResponse{
+			IsSuccess: false,
+			Code:      http.StatusUnauthorized,
+			Msg:       "Format authorization header tidak valid",
+			Err:       "Unauthorized",
+		})
+		return
+	}
+
+	token := parts[1]
+	var claims *pkg.Claims
+	if claimsAny, exists := ctx.Get("claims"); exists {
+		if c, ok := claimsAny.(*pkg.Claims); ok {
+			claims = c
+		}
+	}
+
+	if err := h.service.Logout(ctx.Request.Context(), token, claims); err != nil {
+		ctx.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			IsSuccess: false,
+			Code:      http.StatusInternalServerError,
+			Msg:       "Gagal logout",
+			Err:       err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, models.Response{
+		IsSuccess: true,
+		Code:      http.StatusOK,
+		Msg:       "Logout berhasil",
+	})
+}
+
+// ForgotPassword godoc
+// @Summary      Forgot Password request
+// @Description  Meminta verifikasi email untuk reset password
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        request  body      dto.ForgotPasswordRequest  true  "Email yang terdaftar"
+// @Success      200      {object}  models.Response
+// @Failure      400      {object}  models.ErrorResponse
+// @Router       /auth/forgot-password [post]
+func (h *AuthHandler) ForgotPassword(ctx *gin.Context) {
+	var body dto.ForgotPasswordRequest
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		ctx.JSON(http.StatusBadRequest, models.ErrorResponse{
+			IsSuccess: false,
+			Code:      http.StatusBadRequest,
+			Msg:       "Format email tidak valid",
+			Err:       err.Error(),
+		})
+		return
+	}
+
+	if err := h.service.ForgotPassword(ctx.Request.Context(), body); err != nil {
+		ctx.JSON(http.StatusBadRequest, models.ErrorResponse{
+			IsSuccess: false,
+			Code:      http.StatusBadRequest,
+			Msg:       "Gagal memproses lupa password",
+			Err:       err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, models.Response{
+		IsSuccess: true,
+		Code:      http.StatusOK,
+		Msg:       "Permintaan reset password berhasil diproses",
+	})
+}
+
+// ResetPassword godoc
+// @Summary      Reset / Create New Password
+// @Description  Mengubah password user setelah verifikasi lupa password
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        request  body      dto.ResetPasswordRequest  true  "Data Password Baru"
+// @Success      200      {object}  models.Response
+// @Failure      400      {object}  models.ErrorResponse
+// @Router       /auth/reset-password [post]
+func (h *AuthHandler) ResetPassword(ctx *gin.Context) {
+	var body dto.ResetPasswordRequest
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		ctx.JSON(http.StatusBadRequest, models.ErrorResponse{
+			IsSuccess: false,
+			Code:      http.StatusBadRequest,
+			Msg:       "Data reset password tidak valid",
+			Err:       err.Error(),
+		})
+		return
+	}
+
+	if err := h.service.ResetPassword(ctx.Request.Context(), body); err != nil {
+		ctx.JSON(http.StatusBadRequest, models.ErrorResponse{
+			IsSuccess: false,
+			Code:      http.StatusBadRequest,
+			Msg:       "Gagal memperbarui password",
+			Err:       err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, models.Response{
+		IsSuccess: true,
+		Code:      http.StatusOK,
+		Msg:       "Password berhasil diperbarui, silakan login",
 	})
 }
