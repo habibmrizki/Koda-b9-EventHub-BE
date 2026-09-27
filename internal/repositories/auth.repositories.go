@@ -81,3 +81,21 @@ func (r *AuthRepository) FindByEmail(ctx context.Context, email string) (models.
 	return user, nil
 }
 
+func (r *AuthRepository) UpdatePasswordByEmail(ctx context.Context, email, hashedPassword string) error {
+	query := `
+		UPDATE users
+		SET password = $1, updated_at = NOW()
+		WHERE LOWER(email) = LOWER($2)
+	`
+
+	res, err := r.db.Exec(ctx, query, hashedPassword, email)
+	if err != nil {
+		return err
+	}
+
+	if res.RowsAffected() == 0 {
+		return ErrUserNotFound
+	}
+
+	return nil
+}
