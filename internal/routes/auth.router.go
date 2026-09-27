@@ -3,6 +3,7 @@ package routes
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/habibmrizki/BE-EventHub/internal/handlers"
+	"github.com/habibmrizki/BE-EventHub/internal/middleware"
 	"github.com/habibmrizki/BE-EventHub/internal/repositories"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -14,4 +15,7 @@ func InitAuthRouter(router *gin.Engine, db *pgxpool.Pool) {
 
 	authRouter.POST("/register", authHandler.Register)
 	authRouter.POST("/login", authHandler.Login)
+	authRouter.POST("/logout", middleware.VerifyToken(), authHandler.Logout)
+	authRouter.POST("/forgot-password", authHandler.ForgotPassword)
+	authRouter.POST("/reset-password", authHandler.ResetPassword)
 }
